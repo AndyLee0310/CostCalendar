@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <title>支出統計行事曆</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="container py-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">支出統計行事曆</h2>
+        <div>
+            <!-- 開啟月曆 -->
+            <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#calendarModal">
+                📅 開啟月曆
+            </button>
+            
+            <!-- 回到本月 -->
+            <button type="button" class="btn btn-primary" id="goToToday">
+                🔄 回到本月
+            </button>
+        </div>
+    </div>
+    
+    <!-- 月曆彈窗 -->
+    <div class="modal fade" id="calendarModal" tabindex="-1" aria-labelledby="calendarModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered" style="max-width:90%; margin:2rem auto;">
+            <div class="modal-content" style="height:calc(100vh - 4rem);">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ current_date.strftime('%Y-%m') }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0 overflow-hidden">
+                    <iframe id="calendarIframe" src="/calendar" frameborder="0"
+                        style="width:100%; height:100%; overflow:hidden;"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 切換月份按鈕 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <a class="btn btn-outline-primary" href="/?month={{ prev_month }}">⟵ 上個月</a>
+        <h3>{{ current_date.strftime('%Y 年 %m 月') }}</h3>
+        <a class="btn btn-outline-primary" href="/?month={{ next_month }}">下個月 ⟶</a>
+    </div>
+
+
+    <!-- 新增支出表單 -->
+    <form method="post" class="mb-5">
+        <div class="row g-2">
+            <div class="col-md-4">
+                <input class="form-control" type="text" name="item" placeholder="支出項目" required>
+            </div>
+            <div class="col-md-3">
+                <input class="form-control" type="number" name="amount" placeholder="金額" required>
+            </div>
+            <div class="col-md-3">
+                <input class="form-control" type="date" name="date" required>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary w-100" type="submit">新增</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- 每日支出明細 -->
+    <h4>本月支出明細</h4>
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th class="text-center">#</th>
+                <th>日期</th>
+                <th>項目</th>
+                <th>金額</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for exp in expenses %}
+            <tr>
+                <td class="text-center">{{ loop.index }}</td>
+                <td>{{ exp.date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ exp.item }}</td>
+                <td>{{ "{:,}".format(exp.amount) }}</td>
+                <td>
+                    <form method="post" action="{{ url_for('delete', id=exp.id) }}"
+                        onsubmit="return confirm('確定要刪除嗎？')">
+                        <button type="submit" class="btn btn-sm btn-danger">刪除</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- 每週支出統計 -->
+    <h4 class="mt-5">每週支出統計</h4>
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>第幾週</th>
+                <th>總支出</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for week in weekly_expenses %}
+            <tr>
+                <td>第 {{ loop.index }} 週</td>
+                <td>{{ "{:,}".format(week.total) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- 月支出總計 -->
+    <h4 class="mt-5">本月總支出： <span class="text-danger">{{ "{:,}".format(month_total) }}</span> 元</h4>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var todayButton = document.getElementById('goToToday');
+            var calendarModal = document.getElementById('calendarModal');
+        
+            // 當點擊「回到本月」按鈕
+            todayButton.addEventListener('click', function () {
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0'); // 月份從 0 開始，所以要 +1
+        
+                // 重新導向到本月
+                window.location.href = `/?month=${year}-${month}`;
+            });
+        
+            // 當開啟月曆時，確保 iframe 也載入正確的月份
+            calendarModal.addEventListener('show.bs.modal', function () {
+                const params = new URLSearchParams(window.location.search);
+                const month = params.get('month') || new Date().toISOString().slice(0, 7); // 取得當前月份
+                document.getElementById('calendarIframe').src = `/calendar?month=${month}`;
+            });
+        });
+        </script>
+        
+
+
+    <!-- Bootstrap JS bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+
+</html>
